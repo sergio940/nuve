@@ -6,66 +6,113 @@
 <style>
 body {
     font-family: Arial, sans-serif;
-    background: #1e1e2f;
+    background: #121212;
     color: #fff;
     margin: 0;
-    padding: 2rem;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+
 .container {
-    background: rgba(255,255,255,0.1);
+    width: 90%;
+    max-width: 900px;
+    background: rgba(255,255,255,0.05);
     padding: 20px;
     border-radius: 12px;
-    width: 90%;
-    max-width: 800px;
     text-align: center;
 }
+
 input, button {
-    padding: 8px;
+    width: 80%;
     margin: 5px 0;
+    padding: 8px;
     border-radius: 6px;
     border: none;
 }
+
 button {
     background: #1db954;
-    color: white;
+    color: #fff;
     font-weight: bold;
     cursor: pointer;
 }
+
 button:hover {
     background: #1ed760;
 }
+
 #fileGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 12px;
+    gap: 15px;
     margin-top: 15px;
 }
+
 .fileCard {
     background: rgba(255,255,255,0.1);
-    padding: 10px;
     border-radius: 10px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    position: relative;
+    transition: transform 0.2s;
 }
+
+.fileCard:hover {
+    transform: scale(1.05);
+}
+
 .fileCard img {
     max-width: 100px;
     max-height: 100px;
-    margin-bottom: 8px;
     border-radius: 6px;
+    margin-bottom: 8px;
 }
-.fileCard span {
-    font-size: 0.9rem;
-    word-break: break-all;
+
+.fileName {
+    font-size: 0.85rem;
+    word-break: break-word;
+    text-align: center;
 }
-.fileCard .menu {
-    display: flex;
-    gap: 5px;
-    margin-top: 5px;
+
+.menuBtn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: transparent;
+    color: #fff;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.menuOptions {
+    position: absolute;
+    top: 25px;
+    right: 5px;
+    background: rgba(0,0,0,0.9);
+    border-radius: 6px;
+    display: none;
+    flex-direction: column;
+    width: 100px;
+}
+
+.menuOptions button {
+    width: 100%;
+    margin: 0;
+    padding: 5px;
+    border-radius: 0;
+    background: none;
+    color: #fff;
+    text-align: left;
+    font-size: 0.85rem;
+}
+
+.menuOptions button:hover {
+    background: #1db954;
 }
 .hidden { display: none; }
 </style>
@@ -93,6 +140,7 @@ button:hover {
 <script>
 let currentUser = null;
 
+// Registro
 function register() {
     const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value.trim();
@@ -102,6 +150,7 @@ function register() {
     alert("Usuario registrado.");
 }
 
+// Login
 function login() {
     const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value.trim();
@@ -141,7 +190,7 @@ function loadFiles() {
     account.files.forEach((f, i) => {
         const card = document.createElement("div");
         card.classList.add("fileCard");
-        // Mostrar miniatura si es imagen
+
         if(f.type.startsWith("image/")){
             const img = document.createElement("img");
             img.src = f.data;
@@ -155,35 +204,44 @@ function loadFiles() {
             placeholder.textContent = "📄";
             card.appendChild(placeholder);
         }
-        const name = document.createElement("span");
+
+        const name = document.createElement("div");
+        name.classList.add("fileName");
         name.textContent = f.name;
         card.appendChild(name);
 
-        const menu = document.createElement("div");
-        menu.classList.add("menu");
+        // Botón de menú
+        const menuBtn = document.createElement("button");
+        menuBtn.classList.add("menuBtn");
+        menuBtn.textContent = "⋮";
+        card.appendChild(menuBtn);
 
+        const menu = document.createElement("div");
+        menu.classList.add("menuOptions");
         const downloadBtn = document.createElement("button");
-        downloadBtn.textContent = "⬇️";
-        downloadBtn.title = "Descargar";
+        downloadBtn.textContent = "Descargar";
         downloadBtn.onclick = () => {
             const link = document.createElement("a");
             link.href = f.data;
             link.download = f.name;
             link.click();
+            menu.style.display = "none";
         };
-
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "🗑️";
-        deleteBtn.title = "Eliminar";
+        deleteBtn.textContent = "Eliminar";
         deleteBtn.onclick = () => {
             account.files.splice(i,1);
             localStorage.setItem("user_" + currentUser, JSON.stringify(account));
             loadFiles();
         };
-
         menu.appendChild(downloadBtn);
         menu.appendChild(deleteBtn);
         card.appendChild(menu);
+
+        menuBtn.onclick = () => {
+            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+        };
+
         grid.appendChild(card);
     });
 }
@@ -208,7 +266,7 @@ document.getElementById("importFile").onchange = async (e) => {
     alert("Archivos importados correctamente");
 };
 
-// Cerrar sesión
+// Logout
 function logout() {
     currentUser = null;
     document.getElementById("cloudBox").classList.add("hidden");
