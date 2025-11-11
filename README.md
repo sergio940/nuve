@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MiniCloud Álbum Dinámico</title>
+<title>MiniCloud Álbum Funcional</title>
 <style>
 body {
     font-family: Arial, sans-serif;
@@ -14,6 +14,7 @@ body {
     flex-direction: column;
     align-items: center;
 }
+
 .container {
     width: 90%;
     max-width: 900px;
@@ -22,27 +23,32 @@ body {
     border-radius: 12px;
     text-align: center;
 }
+
 input, button {
     padding: 8px;
     margin: 5px 0;
     border-radius: 6px;
     border: none;
 }
+
 button {
     background: #1db954;
-    color: #fff;
+    color: white;
     font-weight: bold;
     cursor: pointer;
 }
+
 button:hover {
     background: #1ed760;
 }
+
 #fileGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 15px;
     margin-top: 15px;
 }
+
 .fileCard {
     background: rgba(255,255,255,0.1);
     border-radius: 10px;
@@ -51,22 +57,21 @@ button:hover {
     flex-direction: column;
     align-items: center;
     position: relative;
-    transition: transform 0.2s;
 }
-.fileCard:hover {
-    transform: scale(1.05);
-}
+
 .fileCard img {
     max-width: 100px;
     max-height: 100px;
     border-radius: 6px;
     margin-bottom: 8px;
 }
+
 .fileName {
     font-size: 0.85rem;
     word-break: break-word;
     text-align: center;
 }
+
 .menuBtn {
     position: absolute;
     top: 5px;
@@ -77,6 +82,7 @@ button:hover {
     font-size: 1.2rem;
     cursor: pointer;
 }
+
 .menuOptions {
     position: absolute;
     top: 25px;
@@ -87,6 +93,7 @@ button:hover {
     flex-direction: column;
     width: 100px;
 }
+
 .menuOptions button {
     width: 100%;
     margin: 0;
@@ -97,9 +104,11 @@ button:hover {
     text-align: left;
     font-size: 0.85rem;
 }
+
 .menuOptions button:hover {
     background: #1db954;
 }
+
 .hidden { display: none; }
 </style>
 </head>
@@ -162,75 +171,84 @@ document.getElementById("fileInput").onchange = async (e) => {
         reader.onload = () => {
             account.files.push({name: f.name, type: f.type, data: reader.result});
             localStorage.setItem("user_" + currentUser, JSON.stringify(account));
-            loadFiles(); // Actualiza el álbum inmediatamente
+            renderFile(f); // Mostrar directamente en el álbum
         };
         reader.readAsDataURL(f);
     }
 };
 
-// Mostrar archivos tipo álbum dinámico
+// Renderizar un archivo en el grid
+function renderFile(f, index) {
+    const grid = document.getElementById("fileGrid");
+
+    const card = document.createElement("div");
+    card.classList.add("fileCard");
+
+    if(f.type.startsWith("image/")){
+        const img = document.createElement("img");
+        img.src = f.data;
+        card.appendChild(img);
+    } else {
+        const placeholder = document.createElement("div");
+        placeholder.style.height = "80px";
+        placeholder.style.display = "flex";
+        placeholder.style.alignItems = "center";
+        placeholder.style.justifyContent = "center";
+        placeholder.textContent = "📄";
+        card.appendChild(placeholder);
+    }
+
+    const name = document.createElement("div");
+    name.classList.add("fileName");
+    name.textContent = f.name;
+    card.appendChild(name);
+
+    // Botón de menú
+    const menuBtn = document.createElement("button");
+    menuBtn.classList.add("menuBtn");
+    menuBtn.textContent = "⋮";
+    card.appendChild(menuBtn);
+
+    const menu = document.createElement("div");
+    menu.classList.add("menuOptions");
+
+    const downloadBtn = document.createElement("button");
+    downloadBtn.textContent = "Descargar";
+    downloadBtn.onclick = () => {
+        const link = document.createElement("a");
+        link.href = f.data;
+        link.download = f.name;
+        link.click();
+        menu.style.display = "none";
+    };
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Eliminar";
+    deleteBtn.onclick = () => {
+        const account = JSON.parse(localStorage.getItem("user_" + currentUser));
+        const idx = account.files.findIndex(file => file.name === f.name && file.data === f.data);
+        if(idx > -1) account.files.splice(idx,1);
+        localStorage.setItem("user_" + currentUser, JSON.stringify(account));
+        grid.removeChild(card);
+    };
+
+    menu.appendChild(downloadBtn);
+    menu.appendChild(deleteBtn);
+    card.appendChild(menu);
+
+    menuBtn.onclick = () => {
+        menu.style.display = menu.style.display === "flex" ? "none" : "flex";
+    };
+
+    grid.appendChild(card);
+}
+
+// Cargar todos los archivos al iniciar sesión
 function loadFiles() {
     const account = JSON.parse(localStorage.getItem("user_" + currentUser));
     const grid = document.getElementById("fileGrid");
     grid.innerHTML = "";
-    if(account.files.length === 0) grid.innerHTML = "<p>No hay archivos</p>";
-    account.files.forEach((f, i) => {
-        const card = document.createElement("div");
-        card.classList.add("fileCard");
-
-        if(f.type.startsWith("image/")){
-            const img = document.createElement("img");
-            img.src = f.data;
-            card.appendChild(img);
-        } else {
-            const placeholder = document.createElement("div");
-            placeholder.style.height = "80px";
-            placeholder.style.display = "flex";
-            placeholder.style.alignItems = "center";
-            placeholder.style.justifyContent = "center";
-            placeholder.textContent = "📄";
-            card.appendChild(placeholder);
-        }
-
-        const name = document.createElement("div");
-        name.classList.add("fileName");
-        name.textContent = f.name;
-        card.appendChild(name);
-
-        // Botón de menú
-        const menuBtn = document.createElement("button");
-        menuBtn.classList.add("menuBtn");
-        menuBtn.textContent = "⋮";
-        card.appendChild(menuBtn);
-
-        const menu = document.createElement("div");
-        menu.classList.add("menuOptions");
-        const downloadBtn = document.createElement("button");
-        downloadBtn.textContent = "Descargar";
-        downloadBtn.onclick = () => {
-            const link = document.createElement("a");
-            link.href = f.data;
-            link.download = f.name;
-            link.click();
-            menu.style.display = "none";
-        };
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "Eliminar";
-        deleteBtn.onclick = () => {
-            account.files.splice(i,1);
-            localStorage.setItem("user_" + currentUser, JSON.stringify(account));
-            loadFiles();
-        };
-        menu.appendChild(downloadBtn);
-        menu.appendChild(deleteBtn);
-        card.appendChild(menu);
-
-        menuBtn.onclick = () => {
-            menu.style.display = menu.style.display === "flex" ? "none" : "flex";
-        };
-
-        grid.appendChild(card);
-    });
+    account.files.forEach(f => renderFile(f));
 }
 
 // Exportar archivos
@@ -253,7 +271,7 @@ document.getElementById("importFile").onchange = async (e) => {
     alert("Archivos importados correctamente");
 };
 
-// Cerrar sesión
+// Logout
 function logout() {
     currentUser = null;
     document.getElementById("cloudBox").classList.add("hidden");
