@@ -2,48 +2,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MiniCloud Archivos</title>
+<title>MiniCloud Álbum</title>
 <style>
 body {
     font-family: Arial, sans-serif;
     background: #1e1e2f;
     color: #fff;
-    display: flex;
-    justify-content: center;
+    margin: 0;
     padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 .container {
     background: rgba(255,255,255,0.1);
     padding: 20px;
     border-radius: 12px;
-    width: 360px;
+    width: 90%;
+    max-width: 800px;
     text-align: center;
 }
-input, button { width: 90%; margin: 0.5rem 0; padding: 8px; border-radius: 6px; border: none; }
-button { background: #1db954; color: #fff; font-weight: bold; cursor: pointer; }
-button:hover { background: #1ed760; }
-ul { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; }
-li { background: #2e2e4f; margin: 0.3rem 0; padding: 0.5rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+input, button {
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 6px;
+    border: none;
+}
+button {
+    background: #1db954;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:hover {
+    background: #1ed760;
+}
+#fileGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+.fileCard {
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+}
+.fileCard img {
+    max-width: 100px;
+    max-height: 100px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+.fileCard span {
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+.fileCard .menu {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
 .hidden { display: none; }
-a { color: #1db954; text-decoration: none; margin-right: 5px; }
 </style>
 </head>
 <body>
 
 <div class="container" id="authBox">
-    <h2>☁️ MiniCloud Archivos</h2>
-    <input type="text" id="username" placeholder="Usuario">
-    <input type="password" id="password" placeholder="Contraseña">
+    <h2>☁️ MiniCloud Álbum</h2>
+    <input type="text" id="username" placeholder="Usuario"><br>
+    <input type="password" id="password" placeholder="Contraseña"><br>
     <button onclick="register()">Registrarse</button>
-    <button onclick="login()">Iniciar Sesión</button>
+    <button onclick="login()">Iniciar sesión</button>
 </div>
 
 <div class="container hidden" id="cloudBox">
     <h3>Bienvenido, <span id="userDisplay"></span></h3>
     <input type="file" id="fileInput" multiple><br>
-    <ul id="fileList"></ul>
-    <button onclick="exportData()">Exportar mis archivos</button>
-    <input type="file" id="importFile" style="display:none">
+    <div id="fileGrid"></div>
+    <button onclick="exportData()">Exportar archivos</button>
+    <input type="file" id="importFile" class="hidden">
     <button onclick="document.getElementById('importFile').click()">Importar archivos</button>
     <button onclick="logout()">Cerrar sesión</button>
 </div>
@@ -51,11 +93,10 @@ a { color: #1db954; text-decoration: none; margin-right: 5px; }
 <script>
 let currentUser = null;
 
-// Autenticación
 function register() {
     const user = document.getElementById("username").value.trim();
     const pass = document.getElementById("password").value.trim();
-    if(!user || !pass) return alert("Rellena usuario y contraseña.");
+    if(!user || !pass) return alert("Completa usuario y contraseña.");
     if(localStorage.getItem("user_" + user)) return alert("Usuario ya existe.");
     localStorage.setItem("user_" + user, JSON.stringify({password: pass, files: []}));
     alert("Usuario registrado.");
@@ -83,7 +124,7 @@ document.getElementById("fileInput").onchange = async (e) => {
     for(const f of files) {
         const reader = new FileReader();
         reader.onload = () => {
-            account.files.push({name: f.name, data: reader.result});
+            account.files.push({name: f.name, type: f.type, data: reader.result});
             localStorage.setItem("user_" + currentUser, JSON.stringify(account));
             loadFiles();
         };
@@ -91,28 +132,59 @@ document.getElementById("fileInput").onchange = async (e) => {
     }
 };
 
-// Listar archivos
+// Mostrar archivos tipo álbum
 function loadFiles() {
     const account = JSON.parse(localStorage.getItem("user_" + currentUser));
-    const list = document.getElementById("fileList");
-    list.innerHTML = "";
-    if(account.files.length === 0) list.innerHTML = "<li>No hay archivos</li>";
+    const grid = document.getElementById("fileGrid");
+    grid.innerHTML = "";
+    if(account.files.length === 0) grid.innerHTML = "<p>No hay archivos</p>";
     account.files.forEach((f, i) => {
-        const li = document.createElement("li");
-        const link = document.createElement("a");
-        link.href = f.data;
-        link.download = f.name;
-        link.textContent = f.name;
-        const del = document.createElement("button");
-        del.textContent = "Eliminar";
-        del.onclick = () => {
+        const card = document.createElement("div");
+        card.classList.add("fileCard");
+        // Mostrar miniatura si es imagen
+        if(f.type.startsWith("image/")){
+            const img = document.createElement("img");
+            img.src = f.data;
+            card.appendChild(img);
+        } else {
+            const placeholder = document.createElement("div");
+            placeholder.style.height = "80px";
+            placeholder.style.display = "flex";
+            placeholder.style.alignItems = "center";
+            placeholder.style.justifyContent = "center";
+            placeholder.textContent = "📄";
+            card.appendChild(placeholder);
+        }
+        const name = document.createElement("span");
+        name.textContent = f.name;
+        card.appendChild(name);
+
+        const menu = document.createElement("div");
+        menu.classList.add("menu");
+
+        const downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "⬇️";
+        downloadBtn.title = "Descargar";
+        downloadBtn.onclick = () => {
+            const link = document.createElement("a");
+            link.href = f.data;
+            link.download = f.name;
+            link.click();
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "🗑️";
+        deleteBtn.title = "Eliminar";
+        deleteBtn.onclick = () => {
             account.files.splice(i,1);
             localStorage.setItem("user_" + currentUser, JSON.stringify(account));
             loadFiles();
         };
-        li.appendChild(link);
-        li.appendChild(del);
-        list.appendChild(li);
+
+        menu.appendChild(downloadBtn);
+        menu.appendChild(deleteBtn);
+        card.appendChild(menu);
+        grid.appendChild(card);
     });
 }
 
@@ -136,7 +208,7 @@ document.getElementById("importFile").onchange = async (e) => {
     alert("Archivos importados correctamente");
 };
 
-// Logout
+// Cerrar sesión
 function logout() {
     currentUser = null;
     document.getElementById("cloudBox").classList.add("hidden");
